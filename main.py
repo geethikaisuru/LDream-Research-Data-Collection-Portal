@@ -3,11 +3,13 @@ from st_audiorec import st_audiorec
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
+import pandas as pd
 import os
 import wave
 
 # Google Drive folder ID
 DRIVE_FOLDER_ID = "11CwkY3WVRlnOZWgGfHFBRH5RrCPyqed0"
+CSV_FILENAME = "dream_submissions.csv"
 
 # Initialize Google Drive API
 def init_google_drive():
@@ -41,6 +43,18 @@ def save_wav_file(audio_data, filename):
         wf.setframerate(44100)
         wf.writeframes(audio_data)
 
+# Append text data to a CSV file
+def append_to_csv(text, csv_filename):
+    new_entry = pd.DataFrame({"Text Submission": [text]})  # Create a new DataFrame for the entry
+    if not os.path.exists(csv_filename):
+        # Create the file with headers if it doesn't exist
+        new_entry.to_csv(csv_filename, index=False)
+    else:
+        # Read the existing CSV and append the new entry
+        existing_data = pd.read_csv(csv_filename)
+        updated_data = pd.concat([existing_data, new_entry], ignore_index=True)
+        updated_data.to_csv(csv_filename, index=False)
+
 # Streamlit app
 def main():
     st.title("Dream Research Form")
@@ -66,11 +80,8 @@ def main():
             upload_to_drive(drive_service, audio_filename, audio_filename, "audio/wav")
             os.remove(audio_filename)
         elif text_input.strip():
-            text_filename = "text_submission.txt"
-            with open(text_filename, "w") as f:
-                f.write(text_input)
-            upload_to_drive(drive_service, text_filename, text_filename, "text/plain")
-            os.remove(text_filename)
+            append_to_csv(text_input, CSV_FILENAME)
+            upload_to_drive(drive_service, CSV_FILENAME, CSV_FILENAME, "text/csv")
         else:
             st.error("Please submit either a voice recording or a text.")
 
