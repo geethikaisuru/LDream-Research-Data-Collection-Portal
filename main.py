@@ -3,25 +3,30 @@ from st_audiorec import st_audiorec
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
-import pandas as pd
 import os
 import wave
 
 # Google Drive folder ID
 DRIVE_FOLDER_ID = "11CwkY3WVRlnOZWgGfHFBRH5RrCPyqed0"
-CSV_FILENAME = "dream_submissions.csv"
+SHEET_ID = "10eajTGKWmoGn4JW6Rd3_GpS2uxTSds5g9uzBC78xxAM"
+SHEET_NAME = "dream_submissions"
 
-# Initialize Google Drive API
-def init_google_drive():
+# Initialize Google APIs
+def init_google_services():
     try:
         credentials = service_account.Credentials.from_service_account_file(
             "credentials.json",
-            scopes=["https://www.googleapis.com/auth/drive.file"]
+            scopes=[
+                "https://www.googleapis.com/auth/drive.file",
+                "https://www.googleapis.com/auth/spreadsheets"
+            ]
         )
-        return build("drive", "v3", credentials=credentials)
+        drive_service = build("drive", "v3", credentials=credentials)
+        sheets_service = build("sheets", "v4", credentials=credentials)
+        return drive_service, sheets_service
     except Exception as e:
-        st.error(f"Error initializing Google Drive API: {e}")
-        return None
+        st.error(f"Error initializing Google APIs: {e}")
+        return None, None
 
 # Upload a file to Google Drive
 def upload_to_drive(drive_service, file_path, filename, mime_type):
@@ -37,32 +42,45 @@ def upload_to_drive(drive_service, file_path, filename, mime_type):
 
 # Save WAV data to a file
 def save_wav_file(audio_data, filename):
-    with wave.open(filename, "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)  # 16-bit
-        wf.setframerate(44100)
-        wf.writeframes(audio_data)
+    import numpy as np
 
-# Append text data to a CSV file
-def append_to_csv(text, csv_filename):
-    new_entry = pd.DataFrame({"Text Submission": [text]})  # Create a new DataFrame for the entry
-    if not os.path.exists(csv_filename):
-        # Create the file with headers if it doesn't exist
-        new_entry.to_csv(csv_filename, index=False)
-    else:
-        # Read the existing CSV and append the new entry
-        existing_data = pd.read_csv(csv_filename)
-        updated_data = pd.concat([existing_data, new_entry], ignore_index=True)
-        updated_data.to_csv(csv_filename, index=False)
+    # Convert the byte data from st_audiorec to a NumPy array
+    audio_array = np.frombuffer(audio_data, dtype=np.int16)
+
+    # Write the audio data with the correct sampling rate
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(1)               # Mono channel
+        wf.setsampwidth(2)               # 16-bit (2 bytes per sample)
+        wf.setframerate(44100)           # Set the sampling rate to 44100 Hz
+        wf.writeframes(audio_array.tobytes())
+
+
+# Append text data to Google Sheet
+def append_to_google_sheet(sheets_service, text):
+    try:
+        # Prepare the row data
+        body = {
+            "values": [[text]]
+        }
+        # Append to the specified sheet
+        sheets_service.spreadsheets().values().append(
+            spreadsheetId=SHEET_ID,
+            range=f"{SHEET_NAME}!A:A",
+            valueInputOption="RAW",
+            body=body
+        ).execute()
+        st.success("Text submission successfully added to Google Sheet.")
+    except Exception as e:
+        st.error(f"Failed to append text to Google Sheet. Error: {e}")
 
 # Streamlit app
 def main():
     st.title("Dream Research Form")
     st.write("Please submit your dream by recording a voice message or writing text below.")
 
-    # Initialize Google Drive API
-    drive_service = init_google_drive()
-    if drive_service is None:
+    # Initialize Google APIs
+    drive_service, sheets_service = init_google_services()
+    if drive_service is None or sheets_service is None:
         return
 
     # Form for audio or text submission
@@ -80,8 +98,7 @@ def main():
             upload_to_drive(drive_service, audio_filename, audio_filename, "audio/wav")
             os.remove(audio_filename)
         elif text_input.strip():
-            append_to_csv(text_input, CSV_FILENAME)
-            upload_to_drive(drive_service, CSV_FILENAME, CSV_FILENAME, "text/csv")
+            append_to_google_sheet(sheets_service, text_input.strip())
         else:
             st.error("Please submit either a voice recording or a text.")
 
