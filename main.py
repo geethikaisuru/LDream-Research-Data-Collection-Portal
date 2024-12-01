@@ -5,11 +5,16 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 import os
 import wave
+from dotenv import load_dotenv  # Add this import
+
 
 # Google Drive folder ID
-DRIVE_FOLDER_ID = "11CwkY3WVRlnOZWgGfHFBRH5RrCPyqed0"
-SHEET_ID = "10eajTGKWmoGn4JW6Rd3_GpS2uxTSds5g9uzBC78xxAM"
-SHEET_NAME = "dream_submissions"
+
+load_dotenv()
+
+DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
+SHEET_ID = os.getenv('SHEET_ID')
+SHEET_NAME = os.getenv('SHEET_NAME')
 
 # Initialize Google APIs
 def init_google_services():
@@ -43,7 +48,6 @@ def upload_to_drive(drive_service, file_path, filename, mime_type):
 # Save WAV data to a file
 def save_wav_file(audio_data, filename):
     import numpy as np
-
     # Convert the byte data from st_audiorec to a NumPy array
     audio_array = np.frombuffer(audio_data, dtype=np.int16)
 
