@@ -1,7 +1,4 @@
 venv/
 .env
-_pycache_/
-.venv/
 credentials22.json
-secrets.toml
 .streamlit/
