@@ -5,23 +5,18 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 import os
 import wave
-from dotenv import load_dotenv
+import numpy as np
 
 # Page title and favicon 📝
 st.set_page_config(page_title="Dream Research Form", page_icon="🌌")
 
-# Google Drive folder ID
-load_dotenv()
+#st.write("Secrets path:", st.secrets["SHEET_ID"])
 
-DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
-SHEET_ID = os.getenv('SHEET_ID')
-SHEET_NAME = os.getenv('SHEET_NAME')
-
-# Initialize Google APIs
+# Use Google Cloud credentials from secrets.toml
 def init_google_services():
     try:
-        credentials = service_account.Credentials.from_service_account_file(
-            "credentials.json",
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["connections"],
             scopes=[
                 "https://www.googleapis.com/auth/drive.file",
                 "https://www.googleapis.com/auth/spreadsheets"
@@ -36,7 +31,7 @@ def init_google_services():
 
 # Upload a file to Google Drive
 def upload_to_drive(drive_service, file_path, filename, mime_type):
-    file_metadata = {"name": filename, "parents": [DRIVE_FOLDER_ID]}
+    file_metadata = {"name": filename, "parents": [st.secrets["DRIVE_FOLDER_ID"]]}
     media = MediaFileUpload(file_path, mimetype=mime_type)
     try:
         drive_service.files().create(
@@ -48,35 +43,27 @@ def upload_to_drive(drive_service, file_path, filename, mime_type):
 
 # Save WAV data to a file
 def save_wav_file(audio_data, filename):
-    import numpy as np
     # Convert the byte data from st_audiorec to a NumPy array
     audio_array = np.frombuffer(audio_data, dtype=np.int16)
-
-    # Write the audio data with the correct sampling rate
     with wave.open(filename, "wb") as wf:
         wf.setnchannels(1)               # Mono channel
         wf.setsampwidth(2)               # 16-bit (2 bytes per sample)
         wf.setframerate(44100)           # Set the sampling rate to 44100 Hz
         wf.writeframes(audio_array.tobytes())
 
-
 # Append text data to Google Sheet
 def append_to_google_sheet(sheets_service, text):
     try:
-        # Prepare the row data
-        body = {
-            "values": [[text]]
-        }
-        # Append to the specified sheet
+        body = {"values": [[text]]}
         sheets_service.spreadsheets().values().append(
-            spreadsheetId=SHEET_ID,
-            range=f"{SHEET_NAME}!A:A",
+            spreadsheetId=st.secrets["SHEET_ID"],
+            range=f"{st.secrets['SHEET_NAME']}!A:A",
             valueInputOption="RAW",
             body=body
         ).execute()
         st.success("Dream Text submission successfully added. Thank you 🙏")
     except Exception as e:
-        st.error(f"Failed to append text your dream. Error: {e}")
+        st.error(f"Failed to append your dream. Error: {e}")
 
 # Streamlit app
 def main():
@@ -90,7 +77,13 @@ def main():
 
     # Form for audio or text submission
     with st.form("submission_form"):
-        audio_data = st_audiorec()
+        #audio_data = st_audiorec()
+        audio_data = None
+        try:
+            audio_data = st_audiorec()
+        except Exception as e:
+            st.error(f"Error recording audio: {e}. Please check microphone permissions and try again.")
+        
         text_input = st.text_area("Or write your dream here:", "")
         submit_button = st.form_submit_button("Submit")
 
@@ -107,22 +100,14 @@ def main():
         else:
             st.error("Please submit either a voice recording or a text.💭")
 
-    # Thank you message
     st.write("Thank you so much! We will use your anonymous data to help us with our research.🛡️")
-
-    # info about the researcher
     st.write("This research is conducted by Buhuni, a 2nd year student at the University of Sri Jayewardenepura")
-
-    # bold text
-    # add blank lines
     st.write('\n')
     st.write('\n')
     st.write('\n')
     st.write('\n')
     st.write('\n')
-    # DevAutor and link to https://www.linkedin.com/in/geethikaisuru/
     st.write("Portal Developed with ❤️ by [Geethika.](https://www.linkedin.com/in/geethikaisuru/)")
-
 
 if __name__ == "__main__":
     main()
