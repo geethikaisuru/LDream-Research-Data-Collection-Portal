@@ -5,11 +5,12 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 import os
 import wave
-from dotenv import load_dotenv  # Add this import
+from dotenv import load_dotenv
 
+# Page title and favicon 📝
+st.set_page_config(page_title="Dream Research Form", page_icon="🌌")
 
 # Google Drive folder ID
-
 load_dotenv()
 
 DRIVE_FOLDER_ID = os.getenv('DRIVE_FOLDER_ID')
@@ -41,7 +42,7 @@ def upload_to_drive(drive_service, file_path, filename, mime_type):
         drive_service.files().create(
             body=file_metadata, media_body=media, fields="id"
         ).execute()
-        st.success(f"{filename} successfully uploaded to Google Drive.")
+        st.success(f"{filename} recording is successfully uploaded. Thank you 🙏")
     except Exception as e:
         st.error(f"Failed to upload {filename}. Error: {e}")
 
@@ -73,14 +74,14 @@ def append_to_google_sheet(sheets_service, text):
             valueInputOption="RAW",
             body=body
         ).execute()
-        st.success("Text submission successfully added to Google Sheet.")
+        st.success("Dream Text submission successfully added. Thank you 🙏")
     except Exception as e:
-        st.error(f"Failed to append text to Google Sheet. Error: {e}")
+        st.error(f"Failed to append text your dream. Error: {e}")
 
 # Streamlit app
 def main():
-    st.title("Dream Research Form")
-    st.write("Please submit your dream by recording a voice message or writing text below.")
+    st.title("Lucid Dreams Research ✨🌌💫")
+    st.write("Please submit your lucid dream by recording a voice message or writing text below.")
 
     # Initialize Google APIs
     drive_service, sheets_service = init_google_services()
@@ -104,7 +105,24 @@ def main():
         elif text_input.strip():
             append_to_google_sheet(sheets_service, text_input.strip())
         else:
-            st.error("Please submit either a voice recording or a text.")
+            st.error("Please submit either a voice recording or a text.💭")
+
+    # Thank you message
+    st.write("Thank you so much! We will use your anonymous data to help us with our research.🛡️")
+
+    # info about the researcher
+    st.write("This research is conducted by Buhuni, a 2nd year student at the University of Sri Jayewardenepura")
+
+    # bold text
+    # add blank lines
+    st.write('\n')
+    st.write('\n')
+    st.write('\n')
+    st.write('\n')
+    st.write('\n')
+    # DevAutor and link to https://www.linkedin.com/in/geethikaisuru/
+    st.write("Portal Developed with ❤️ by [Geethika.](https://www.linkedin.com/in/geethikaisuru/)")
+
 
 if __name__ == "__main__":
     main()
