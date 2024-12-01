@@ -7,8 +7,46 @@ import os
 import wave
 import numpy as np
 
+
 # Page title and set wide mode
-st.set_page_config(page_title="Dream Research Form", page_icon="🌌", layout = "wide")
+st.set_page_config(page_title="Dream Research Form", page_icon="🌌")
+
+# Custom CSS to detect screen width
+custom_css = """
+<style>
+@media screen and (max-width: 768px) {
+    .main .block-container {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+</style>
+"""
+
+# Custom JavaScript to dynamically adjust layout based on screen width
+custom_js = """
+<script>
+function adjustLayout() {
+    if (window.innerWidth <= 768) {
+        document.body.classList.add('wide-mode');
+    } else {
+        document.body.classList.remove('wide-mode');
+    }
+}
+window.addEventListener('resize', adjustLayout);
+window.addEventListener('load', adjustLayout);
+</script>
+"""
+
+# Inject the custom CSS and JavaScript into the Streamlit app
+st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(custom_js, unsafe_allow_html=True)
+
+# Add your Streamlit components here
+st.title("Adaptive Layout")
+st.write("This layout adjusts based on the screen size.")
+
 
 #st.write("Secrets path:", st.secrets["SHEET_ID"])
 
