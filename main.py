@@ -10,8 +10,6 @@ import numpy as np
 # Page title and set wide mode
 st.set_page_config(page_title="Dream Research Form", page_icon="🌌", layout = "wide")
 
-#st.write("Secrets path:", st.secrets["SHEET_ID"])
-
 # Use Google Cloud credentials from secrets.toml
 def init_google_services():
     try:
